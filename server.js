@@ -51,13 +51,12 @@ app.get('/search/:name', function(req, res) {
 
         relatedArtists.on('end', function(item) {
             artist.related = item.artists
+            res.json(artist);
         })
 
         relatedArtists.on('error', function (code) {
             res.sendStatus(code);
         });
-
-        res.json(artist);
     });
 
     searchReq.on('error', function(code) {
