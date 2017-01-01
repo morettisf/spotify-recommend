@@ -25,7 +25,20 @@ function getRelated(artistId) {
     .end(function(response) {
         if (response.ok) {
             emitter.emit('end', response.body)
-//            console.log(response.body.artists)
+        }
+        else {
+            emitter.emit('error', response.code)
+        }
+    })
+    return emitter
+}
+
+function getTopTracks(artistId) {
+    var emitter = new events.EventEmitter()
+    unirest.get('https://api.spotify.com/v1/artists/' + artistId + '/top-tracks?country=us')
+    .end(function(response) {
+        if (response.ok) {
+            emitter.emit('end', response.body)
         }
         else {
             emitter.emit('error', response.code)
@@ -51,10 +64,28 @@ app.get('/search/:name', function(req, res) {
 
         relatedArtists.on('end', function(item) {
             artist.related = item.artists
-            res.json(artist);
+            var count = 0
+            var length = artist.related.length
+
+            artist.related.forEach(function(currentArtist) {
+                var topTracks = getTopTracks(currentArtist.id)
+
+                topTracks.on('end', function(item) {
+                    currentArtist.tracks = item.tracks
+                    count++
+                    if (count === length) {
+                        res.json(artist);
+                    }                   
+                })
+
+                topTracks.on('error', function(code) {
+                    res.sendStatus(code);
+                });
+            })
+
         })
 
-        relatedArtists.on('error', function (code) {
+        relatedArtists.on('error', function(code) {
             res.sendStatus(code);
         });
     });
